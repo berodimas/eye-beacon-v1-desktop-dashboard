@@ -9,6 +9,7 @@ app = Flask(__name__)
 api = Api(app)
 
 from datetime import datetime, date
+from camera_stream import *
 
 i = 1
 
@@ -39,7 +40,17 @@ class MainWindow(QMainWindow):
             lambda: self.ui.stacked_widget.setCurrentWidget(self.ui.page_2))
         self.ui.button_page_log.clicked.connect(
             self.state_function)
-    
+
+        self.screen_width = QApplication.desktop().screenGeometry().width()
+        self.screen_height = QApplication.desktop().screenGeometry().height()
+
+        self.container_camera = self.ui.label_camera_stream
+        self.camera_address_enter("rtsp://127.0.0.1:8554/cam")
+
+    def camera_address_enter(self, camera_stream_address):
+        self.camera_stream_address = camera_stream_address
+        self.camera_stream = CameraStream(self.container_camera, self.screen_width //
+                                              3, self.screen_height//3, camera_stream_address)
     def state_function(self):
         if self.ui.stacked_widget.currentIndex() == 0:
             self.ui.button_page_feed.setStyleSheet("background-color: rgb(238, 238, 238);\n"
@@ -65,8 +76,6 @@ class MainWindow(QMainWindow):
                                                "border-bottom-right-radius: 5px;\n"
                                                "font: 10pt;\n"
                                                "font-weight: bold;")
-        
-
                    
     def new_report(self):
         global i
