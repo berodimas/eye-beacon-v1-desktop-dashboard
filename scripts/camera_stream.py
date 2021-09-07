@@ -1,23 +1,21 @@
+import cv2
+
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
 from PyQt5 import QtCore, QtGui, QtWidgets
 from threading import Thread
 from collections import deque
-import cv2
 import time
 import imutils
+
+import os
+
+os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
 class CameraStream(QWidget):
     def __init__(self, video_frame, width, height, stream_link=0, aspect_ratio=False, parent=None, deque_size=1):
         super().__init__(parent)
-        
-        # self.msg = QtWidgets.QMessageBox()
-        # self.msg.setWindowTitle("Information")
-        # self.msg.setIcon(QMessageBox.Warning)
-
-        # self.verify_network_handler = self.VerifyNetworkHandler()
-        # self.verify_network_handler.verify_status.connect(self.on_status_verify)
 
         # Initialize deque used to store frames read from the stream
         self.deque = deque(maxlen=deque_size)
@@ -74,13 +72,10 @@ class CameraStream(QWidget):
                 raise NameError("Can't connect to the Camera")
                 return False
         except Exception as e:
-            # self.msg.setText(QtWidgets.QApplication.translate("MainWindow", "Can't connect to the Camera"))
-            # self.verify_network_handler.verify_status.emit(False)
             print("Exception:", e)
         else:
             print('Started camera: {}'.format(self.camera_stream_link))
             cap.release()
-            # self.verify_network_handler.verify_status.emit(True)
             return True
 
     def get_frame(self):
@@ -130,23 +125,14 @@ class CameraStream(QWidget):
             else:
                 self.frame = cv2.resize(
                     frame, (self.screen_width, self.screen_height))
+                self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Convert to pixmap and set to video frame
             self.img = QtGui.QImage(
-                self.frame, self.frame.shape[1], self.frame.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
+                self.frame, self.frame.shape[1], self.frame.shape[0], QtGui.QImage.Format_RGB888) #.rgbSwapped()
             self.pix = QPixmap.fromImage(self.img)
             self.pix = self.pix.scaledToHeight(self.video_frame.height())
             self.video_frame.setPixmap(self.pix)
 
     def get_video_frame(self):
         return self.video_frame
-
-    # class VerifyNetworkHandler(QObject):
-    #     verify_status = pyqtSignal(bool)
-    
-    # @pyqtSlot(bool)
-    # def on_status_verify(self, verify):
-    #     if verify == False:
-    #         self.msg.show()
-    #     else:
-    #         self.msg.hide()

@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
-from eyebeacon_gui3 import *
-import sys
 
+from scripts.camera_stream import *
+from ui_file.eyebeacon_gui import *
+
+from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
 from flask import Flask, jsonify, abort, make_response, request
 from flask_restful import Api, Resource, abort
 
@@ -9,7 +10,7 @@ app = Flask(__name__)
 api = Api(app)
 
 from datetime import datetime, date
-from camera_stream import *
+import sys
 
 i = 1
 
@@ -18,6 +19,18 @@ status = {
     'ble': 0,
     'anomaly': 0
 }
+
+# import subprocess
+# import re
+
+# proc1 = subprocess.Popen(['cat', '/etc/resolv.conf'], stdout=subprocess.PIPE)
+# proc2 = subprocess.Popen(['grep', '-oP', '(?<=nameserver\\s)\\d+(\\.\\d+){3}'], stdin=proc1.stdout,
+#                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+# proc1.stdout.close() # Allow proc1 to receive a SIGPIPE if proc2 exits.
+# out, err = proc2.communicate()
+
+# addr = "rtsp://{}:8554/cam".format(str(out)[2:-3])
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -45,7 +58,8 @@ class MainWindow(QMainWindow):
         self.screen_height = QApplication.desktop().screenGeometry().height()
 
         self.container_camera = self.ui.label_camera_stream
-        self.camera_address_enter("rtsp://127.0.0.1:8554/cam")
+        self.camera_address_enter("rtsp://192.168.0.107:8554/cam")
+        # self.camera_address_enter(addr)
 
     def camera_address_enter(self, camera_stream_address):
         self.camera_stream_address = camera_stream_address
