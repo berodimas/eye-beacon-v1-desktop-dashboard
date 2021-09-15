@@ -20,18 +20,6 @@ status = {
     'anomaly': 0
 }
 
-# import subprocess
-# import re
-
-# proc1 = subprocess.Popen(['cat', '/etc/resolv.conf'], stdout=subprocess.PIPE)
-# proc2 = subprocess.Popen(['grep', '-oP', '(?<=nameserver\\s)\\d+(\\.\\d+){3}'], stdin=proc1.stdout,
-#                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-# proc1.stdout.close() # Allow proc1 to receive a SIGPIPE if proc2 exits.
-# out, err = proc2.communicate()
-
-# addr = "rtsp://{}:8554/cam".format(str(out)[2:-3])
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -58,8 +46,7 @@ class MainWindow(QMainWindow):
         self.screen_height = QApplication.desktop().screenGeometry().height()
 
         self.container_camera = self.ui.label_camera_stream
-        self.camera_address_enter("rtsp://192.168.0.107:8554/cam")
-        # self.camera_address_enter(addr)
+        self.camera_address_enter("rtsp://192.168.0.117:8554/cam")
 
     def camera_address_enter(self, camera_stream_address):
         self.camera_stream_address = camera_stream_address
@@ -126,7 +113,7 @@ class MainWindow(QMainWindow):
         setter = pyqtSignal()
 
     class WebClient:
-        @app.route("/eyebeacon", methods=['POST'])
+        @app.route("/eyebeacon/dashboard/logs", methods=['POST'])
         def post():
             mainWindow.WebClientHandler.setter.emit()
             if len(status) == 0:
