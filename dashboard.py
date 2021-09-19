@@ -1,10 +1,10 @@
 
-from scripts.camera_stream import *
+from helper.camera_stream import *
 from ui_file.eyebeacon_gui import *
 
 from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
-from flask import Flask, jsonify, abort, make_response, request
-from flask_restful import Api, Resource, abort
+from flask import Flask, jsonify, abort, request
+from flask_restful import Api, abort
 
 app = Flask(__name__)
 api = Api(app)
@@ -46,7 +46,8 @@ class MainWindow(QMainWindow):
         self.screen_height = QApplication.desktop().screenGeometry().height()
 
         self.container_camera = self.ui.label_camera_stream
-        self.camera_address_enter("rtsp://192.168.0.117:8554/cam")
+        # self.camera_address_enter("rtsp://192.168.0.117:8554/cam")
+        self.camera_address_enter("rtsp://192.168.0.107:8554/cam")
 
     def camera_address_enter(self, camera_stream_address):
         self.camera_stream_address = camera_stream_address

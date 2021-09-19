@@ -1,15 +1,9 @@
-import cv2
-
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtGui import QPixmap
+from PyQt5 import QtCore, QtGui
 from threading import Thread
 from collections import deque
-import time
-import imutils
-
-import os
+import time, imutils, cv2, os
 
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
