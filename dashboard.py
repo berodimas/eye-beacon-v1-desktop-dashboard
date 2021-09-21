@@ -1,10 +1,13 @@
 
-from helper.camera_stream import *
 from ui_file.eyebeacon_gui import *
 
 from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
 from flask import Flask, jsonify, abort, request
 from flask_restful import Api, abort
+import redis, struct, cv2, os
+import numpy as np
+
+os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
 app = Flask(__name__)
 api = Api(app)
@@ -46,13 +49,26 @@ class MainWindow(QMainWindow):
         self.screen_height = QApplication.desktop().screenGeometry().height()
 
         self.container_camera = self.ui.label_camera_stream
-        # self.camera_address_enter("rtsp://192.168.0.117:8554/cam")
-        self.camera_address_enter("rtsp://192.168.0.107:8554/cam")
+        self.r = redis.Redis(host='localhost', port=6379, db=0)
 
-    def camera_address_enter(self, camera_stream_address):
-        self.camera_stream_address = camera_stream_address
-        self.camera_stream = CameraStream(self.container_camera, self.screen_width //
-                                              3, self.screen_height//3, camera_stream_address)
+        timer = QTimer(self)
+        timer.setInterval(int(1000/30))
+        timer.timeout.connect(self.fromRedis)
+        timer.start()
+
+    def fromRedis(self):
+        """Retrieve Numpy array from Redis key 'n'"""
+        encoded = self.r.get('image')
+        h, w = struct.unpack('>II',encoded[:8])
+        a = np.frombuffer(encoded, dtype=np.uint8, offset=8).reshape(h,w,3)
+        a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
+        self.img = QImage(a, a.shape[1], a.shape[0],
+                      QImage.Format_RGB888)
+        self.pix = QPixmap.fromImage(self.img)
+        self.pix = self.pix.scaledToHeight(self.container_camera.height())
+        self.container_camera.setPixmap(self.pix)
+
+
     def state_function(self):
         if self.ui.stacked_widget.currentIndex() == 0:
             self.ui.button_page_feed.setStyleSheet("background-color: rgb(238, 238, 238);\n"
