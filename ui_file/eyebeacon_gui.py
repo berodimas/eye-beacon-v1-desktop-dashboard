@@ -230,9 +230,9 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label_identified_list.setText(_translate("MainWindow", "Indentified Person List:"))
-        self.label_status_1.setText(_translate("MainWindow", "Identified Person: -"))
-        self.label_status_2.setText(_translate("MainWindow", "Unknown Person: -"))
-        self.label_status_3.setText(_translate("MainWindow", "Details: -"))
+        self.label_status_1.setText(_translate("MainWindow", "Enter Count: -"))
+        self.label_status_2.setText(_translate("MainWindow", "Exit Count: -"))
+        self.label_status_3.setText(_translate("MainWindow", "Total Person Inside: -"))
         self.label_current_status.setText(_translate("MainWindow", "Current Status:"))
         self.button_page_feed.setText(_translate("MainWindow", "FEEDS"))
         self.button_page_log.setText(_translate("MainWindow", "LOGS"))
