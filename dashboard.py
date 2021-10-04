@@ -1,22 +1,16 @@
 
 from ui_file.eyebeacon_gui import *
 
-from PyQt5.QtWidgets import QGridLayout, QLayout, QMainWindow, QWidget
-from flask import Flask, jsonify, abort, request
-from flask_restful import Api, abort
-import redis, struct, cv2, os
+from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
+import redis, struct, cv2, os, json, sys
+from datetime import datetime, date
 import numpy as np
 
 # os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
-app = Flask(__name__)
-api = Api(app)
+r = redis.Redis(host='localhost', port=6379, db=0)
 
-from datetime import datetime, date
-import sys
-
-i = 1
-j = 1
+i, j = 1, 1
 arr = []
 
 people_counter = {
@@ -37,15 +31,10 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.WebClientWorker = self.WebClientWorker()
-        self.WebClientWorker.start()
-
-        self.PeopleCounterRequest = self.PeopleCounterRequest()
-        self.PeopleCounterRequest.setter.connect(self.people_count_report)
-
-        self.PeopleStatusRequest = self.PeopleStatusRequest()
-        self.PeopleStatusRequest.setter.connect(self.people_status_report)
-
+        self.RedisClientWorker = self.RedisClientWorker()
+        self.RedisClientWorker.start()
+        self.RedisClientWorker.setter_counter.connect(self.people_count_report)
+        self.RedisClientWorker.setter_status.connect(self.people_status_report)
 
         self.ui.button_page_feed.clicked.connect(
             lambda: self.ui.stacked_widget.setCurrentWidget(self.ui.page_1))
@@ -60,7 +49,6 @@ class MainWindow(QMainWindow):
         self.screen_height = QApplication.desktop().screenGeometry().height()
 
         self.container_camera = self.ui.label_camera_stream
-        self.r = redis.Redis(host='localhost', port=6379, db=0)
 
         timer = QTimer(self)
         timer.setInterval(int(1000/30))
@@ -69,7 +57,7 @@ class MainWindow(QMainWindow):
 
     def fromRedis(self):
         """Retrieve Numpy array from Redis key 'n'"""
-        encoded = self.r.get('image')
+        encoded = r.get('image')
         h, w = struct.unpack('>II',encoded[:8])
         a = np.frombuffer(encoded, dtype=np.uint8, offset=8).reshape(h,w,3)
         a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
@@ -78,7 +66,6 @@ class MainWindow(QMainWindow):
         self.pix = QPixmap.fromImage(self.img)
         self.pix = self.pix.scaledToHeight(self.container_camera.height())
         self.container_camera.setPixmap(self.pix)
-
 
     def state_function(self):
         if self.ui.stacked_widget.currentIndex() == 0:
@@ -108,18 +95,13 @@ class MainWindow(QMainWindow):
                    
     def people_count_report(self):
         global i
-        now = datetime.now()
-        today = date.today()
-
-        current_time = now.strftime("%H:%M:%S")
-        current_date = today.strftime("%B %d, %Y")
 
         widget_report = QWidget()
         widget_report.setStyleSheet("background-color: rgb(255, 255, 255);\nborder-radius: 5px;")
         layout_report = QGridLayout(widget_report)
 
-        label_date = QLabel(current_date)
-        label_time = QLabel(current_time)
+        label_date = QLabel(date.today().strftime("%B %d, %Y"))
+        label_time = QLabel(datetime.now().strftime("%H:%M:%S"))
         label_time.setAlignment(QtCore.Qt.AlignRight)
         label_detected = QLabel("Enter Count: {}\nExit Count: {}\nTotal Person Inside: {}".format(
             people_counter['enter'], people_counter['exit'], people_counter['total']))
@@ -128,26 +110,20 @@ class MainWindow(QMainWindow):
         layout_report.addWidget(label_time, 0, 1, 1, 1)
         layout_report.addWidget(label_detected, 1, 0, 1, 2)
 
-        self.layout = self.ui.report_container_layout_2
-        self.layout.insertWidget(self.layout.count()-i, widget_report)
-
         self.ui.label_status_1.setText("Enter Count: {}".format(
             people_counter['enter']))
         self.ui.label_status_2.setText("Exit Count: {}".format(
             people_counter['exit']))
         self.ui.label_status_3.setText("Total Person Inside: {}".format(
-            people_counter['total']))        
+            people_counter['total']))     
+
+        self.layout = self.ui.report_container_layout_2
+        self.layout.insertWidget(self.layout.count()-i, widget_report)
+
         i+=1
 
     def people_status_report(self):
-        global j
-        global arr
-        user_name = people_status['name']
-        isInside = people_status['isInside']
-
-
-        now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
+        global j, arr
 
         widget_report = QWidget()
         widget_report.setStyleSheet(
@@ -155,77 +131,45 @@ class MainWindow(QMainWindow):
         layout_report = QGridLayout(widget_report)
         self.layout = self.ui.report_container_layout
         
-        if isInside:
-            if user_name not in arr:
-                arr.append(user_name)
-                label_name = QLabel("{}".format(user_name))
-                label_time = QLabel(current_time)
+        if people_status['isInside']:
+            if people_status['name'] not in arr:
+                arr.append(people_status['name'])
+                label_name = QLabel("{}".format(people_status['name']))
+                label_time = QLabel(datetime.now().strftime("%H:%M:%S"))
                 label_time.setAlignment(QtCore.Qt.AlignRight)
                 layout_report.addWidget(label_name, 0, 0, 1, 1)
                 layout_report.addWidget(label_time, 0, 1, 1, 1)
-                widget_report.setObjectName("{}".format(user_name))
+                widget_report.setObjectName("{}".format(people_status['name']))
                 self.layout.insertWidget(self.layout.count()-j, widget_report)
                 j+=1
         else:
-            child = self.findChild(QWidget, "{}".format(user_name))
+            child = self.findChild(QWidget, "{}".format(people_status['name']))
             if child:
-                arr.remove(user_name)
+                arr.remove(people_status['name'])
                 child.deleteLater()
                 j -= 1
+
+    class RedisClientWorker(QThread):
+        setter_counter = pyqtSignal()
+        setter_status = pyqtSignal()
         
-    class PeopleCounterRequest(QObject):
-        setter = pyqtSignal()
+        def __init__(self):
+            super().__init__()
+            self.p = r.pubsub()
+            self.p.psubscribe('http_*')
 
-    class PeopleStatusRequest(QObject):
-        setter = pyqtSignal()
-
-    class WebClient:
-        @app.route("/", methods=['GET'])
-        def home():
-            return "Hello World"
-            
-        @app.route("/eyebeacon/dashboard/people_counter", methods=['POST'])
-        def post():
-            mainWindow.PeopleCounterRequest.setter.emit()
-            if len(people_counter) == 0:
-                abort(404)
-            if not request.json:
-                abort(400)
-            if 'enter' in request.json and type(request.json['enter']) is not int:
-                abort(400)
-            if 'exit' in request.json and type(request.json['exit']) is not int:
-                abort(400)
-            if 'total' in request.json and type(request.json['total']) is not int:
-                abort(400)
-            people_counter['enter'] = request.json.get(
-                'enter', people_counter['enter'])
-            people_counter['exit'] = request.json.get(
-                'exit', people_counter['exit'])
-            people_counter['total'] = request.json.get(
-                'total', people_counter['total'])
-            return jsonify({'people_counter': people_counter})
-        
-        @app.route("/eyebeacon/dashboard/people_status", methods=['GET'])
-        def get():
-            mainWindow.PeopleStatusRequest.setter.emit()
-            if len(people_status) == 0:
-                abort(404)
-            if not request.json:
-                abort(400)
-            if 'name' in request.json and type(request.json['name']) is not str:
-                abort(400)
-            if 'isInside' in request.json and type(request.json['isInside']) is not bool:
-                abort(400)
-            people_status['name'] = request.json.get(
-                'name', people_status['name'])
-            people_status['isInside'] = request.json.get(
-                'isInside', people_status['isInside'])
-            return jsonify({'people_status': people_status})
-
-    class WebClientWorker(QThread):
         def run(self):
-            app.run(host='0.0.0.0', port=5001)
-
+            for message in self.p.listen():
+                if 'pmessage' != message['type']:
+                    continue
+                data = json.loads(message['data'].decode('utf-8'))
+                if 'http_counter' == message['channel'].decode('utf-8'):
+                    people_counter["enter"], people_counter["exit"], people_counter["total"] = data["enter"], data["exit"], data["total"]
+                    self.setter_counter.emit()
+                if 'http_status' == message['channel'].decode('utf-8'):
+                    people_status["name"], people_status["isInside"] = data["name"], data["isInside"]
+                    self.setter_status.emit()
+                
 if __name__ == "__main__":
     application = QApplication(sys.argv)
     mainWindow = MainWindow()
