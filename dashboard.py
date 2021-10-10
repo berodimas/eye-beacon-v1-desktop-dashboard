@@ -2,13 +2,11 @@
 from ui_file.eyebeacon_gui import *
 
 from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
-import redis, struct, cv2, os, json, sys
+import redis, struct, cv2, json, sys
 from datetime import datetime, date
 import numpy as np
 
-# os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
-
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = redis.Redis(host='redis', port=6379, db=0)
 
 i, j = 1, 1
 arr = []
@@ -57,15 +55,18 @@ class MainWindow(QMainWindow):
 
     def fromRedis(self):
         """Retrieve Numpy array from Redis key 'n'"""
-        encoded = r.get('image')
-        h, w = struct.unpack('>II',encoded[:8])
-        a = np.frombuffer(encoded, dtype=np.uint8, offset=8).reshape(h,w,3)
-        a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
-        self.img = QImage(a, a.shape[1], a.shape[0],
-                      QImage.Format_RGB888)
-        self.pix = QPixmap.fromImage(self.img)
-        self.pix = self.pix.scaledToHeight(self.container_camera.height())
-        self.container_camera.setPixmap(self.pix)
+        try:
+            encoded = r.get('image')
+            h, w = struct.unpack('>II',encoded[:8])
+            a = np.frombuffer(encoded, dtype=np.uint8, offset=8).reshape(h,w,3)
+            a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
+            self.img = QImage(a, a.shape[1], a.shape[0],
+                        QImage.Format_RGB888)
+            self.pix = QPixmap.fromImage(self.img)
+            self.pix = self.pix.scaledToHeight(self.container_camera.height())
+            self.container_camera.setPixmap(self.pix)
+        except:
+            pass
 
     def state_function(self):
         if self.ui.stacked_widget.currentIndex() == 0:
