@@ -2,11 +2,16 @@
 from ui_file.eyebeacon_gui import *
 
 from PyQt5.QtWidgets import QGridLayout, QMainWindow, QWidget
-import redis, struct, cv2, json, sys
+import redis, struct, cv2, json, sys, argparse
 from datetime import datetime, date
 import numpy as np
 
-r = redis.Redis(host='redis', port=6379, db=0)
+ap = argparse.ArgumentParser()
+ap.add_argument("-r", "--redis", type=str,
+                help="input for redis host")
+args = vars(ap.parse_args())
+
+r = redis.Redis(host=args["redis"], port=6379, db=0)
 
 i, j = 1, 1
 arr = []
